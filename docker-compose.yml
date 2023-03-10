@@ -1,0 +1,74 @@
+version: '3.8'
+services:
+  basket:
+    image: nicolasfy/basket:1.1
+    container_name: basket
+    restart: always 
+    networks:
+      - miage-corp
+  backforfront:
+    image: nicolasfy/backforfront:1.1
+    container_name: backforfront
+    ports:
+      - "5100:80"
+    restart: always 
+    networks:
+      - miage-corp
+    depends_on:
+      - keycloak
+      - basket
+  keycloak:
+    image: jboss/keycloak:10.0.2
+    container_name: keycloak
+    ports:
+      - "8080:8080"
+    environment:
+        DB_VENDOR: mariadb
+        DB_ADDR: mariadb-dev
+        DB_DATABASE: keycloak
+        DB_USER: keycloak
+        DB_PASSWORD: keycloak
+        KEYCLOAK_USER: admin
+        KEYCLOAK_PASSWORD: admin
+        JGROUPS_DISCOVERY_PROTOCOL: JDBC_PING
+        JGROUPS_DISCOVERY_PROPERTIES: datasource_jndi_name=java:jboss/datasources/KeycloakDS,info_writer_sleep_time=2000
+    restart: always 
+    networks:
+      - miage-corp
+  mariadb-dev:
+    image: mariadb
+    container_name: mariadb-dev
+    environment:
+        MYSQL_ROOT_PASSWORD: root
+        MYSQL_DATABASE: keycloak
+        MYSQL_USER: keycloak
+        MYSQL_PASSWORD: keycloak
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "--silent"]
+    # ports:
+    #   - "3306:3306"
+    restart: always 
+    networks:
+      - miage-corp
+    volumes:
+      - mariadb-data:/var/lib/mysql/data
+  mongo:
+    image: mongo:5.0
+    container_name: mongo
+    # ports:
+    #   - "27017:27017"
+    restart: always 
+    networks:
+      - miage-corp
+    volumes:
+      - mongo-data:/data/db
+volumes:
+  mariadb-data:
+    name: mariadb-data
+    driver: local
+  mongo-data:
+    name: mongo-data
+    driver: local
+networks:
+  miage-corp:
+    name: miage-corp
